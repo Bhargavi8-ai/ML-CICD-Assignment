@@ -1,0 +1,41 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ML CI/CD Assignment</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 700px;
+            margin: 60px auto;
+            padding: 24px;
+            background: #f4f7fb;
+            color: #222;
+        }
+        .card {
+            background: white;
+            padding: 28px;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px #00000015;
+        }
+        h1 { color: #174ea6; }
+        .status { color: #188038; font-weight: bold; }
+        p { line-height: 1.8; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>ML Model CI/CD Pipeline</h1>
+        <p><strong>Model:</strong> Logistic Regression</p>
+        <p><strong>Dataset:</strong> Iris Dataset</p>
+        <p><strong>Model Accuracy:</strong> {{MODEL_ACCURACY}}</p>
+        <p><strong>CI/CD Status:</strong>
+            <span class="status">{{DEPLOYMENT_STATUS}}</span>
+        </p>
+        <p>This page is published automatically using GitHub Actions
+           after model training and automated tests pass.</p>
+    </div>
+</body>
+</html>
