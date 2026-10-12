@@ -55,8 +55,7 @@ jobs:
           echo "accuracy=$ACCURACY" >> "$GITHUB_OUTPUT"
 
       - name: Run automated tests
-        run: |
-          pytest -v
+        run: pytest -v
 
   cd:
     name: Continuous Deployment
@@ -99,10 +98,15 @@ jobs:
           path.write_text(html, encoding="utf-8")
           PY
 
+      - name: Prepare website artifact
+        run: |
+          mkdir -p site
+          cp index.html site/index.html
+
       - name: Upload website artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: index.html
+          path: ./site
 
       - name: Deploy to GitHub Pages
         id: deployment
