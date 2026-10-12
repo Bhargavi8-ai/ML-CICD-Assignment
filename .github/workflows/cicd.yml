@@ -1,0 +1,109 @@
+
+name: ML Model CI-CD Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: Continuous Integration
+    runs-on: ubuntu-latest
+
+    outputs:
+      accuracy: ${{ steps.metrics.outputs.accuracy }}
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Train and run ML model
+        run: |
+          set -o pipefail
+          python model.py | tee model_output.txt
+
+      - name: Export model accuracy
+        id: metrics
+        run: |
+          ACCURACY=$(python -c "import re; s=open('model_output.txt').read(); m=re.search(r'Accuracy:\s*([0-9.]+)', s); print(m.group(1) if m else '')")
+          if [ -z "$ACCURACY" ]; then
+            echo "Could not read model accuracy"
+            exit 1
+          fi
+          echo "accuracy=$ACCURACY" >> "$GITHUB_OUTPUT"
+
+      - name: Run automated tests
+        run: |
+          pytest -v
+
+  cd:
+    name: Continuous Deployment
+    needs: ci
+    if: needs.ci.result == 'success'
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v4
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Update deployment information
+        env:
+          MODEL_ACCURACY: ${{ needs.ci.outputs.accuracy }}
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          path = Path("index.html")
+          html = path.read_text(encoding="utf-8")
+
+          accuracy = float(os.environ["MODEL_ACCURACY"])
+          html = html.replace(
+              "{{MODEL_ACCURACY}}",
+              f"{accuracy * 100:.2f}%"
+          )
+          html = html.replace(
+              "{{DEPLOYMENT_STATUS}}",
+              "Successful - CI passed; published by GitHub Actions"
+          )
+
+          path.write_text(html, encoding="utf-8")
+          PY
+
+      - name: Upload website artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: index.html
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
